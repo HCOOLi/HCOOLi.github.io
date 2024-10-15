@@ -1,5 +1,5 @@
-use crate::{consts::*, Board};
-use bevy::{color::*, prelude::*, render::texture, sprite::*, text::Font};
+use crate::Board;
+use bevy::{color::*, prelude::*};
 
 // 键盘移动的光标
 #[derive(Component)]
@@ -9,6 +9,15 @@ pub struct Cursor;
 pub enum PieceColor {
     Black,
     White,
+}
+
+impl PieceColor {
+    pub fn opposite(&self) -> Self {
+        match self {
+            PieceColor::Black => PieceColor::White,
+            PieceColor::White => PieceColor::Black,
+        }
+    }
 }
 
 #[derive(Component)]
@@ -59,12 +68,14 @@ impl Position {
 
 pub fn spawn_cursor(mut commands: Commands, asset_server: ResMut<AssetServer>) {
     let cursor_image = asset_server.load("cursor.png");
+    // let black_img = asset_server.load("chess_black.png");
+    // let white_img = asset_server.load("chess_white.png");
     commands
         .spawn(SpriteBundle {
             texture: cursor_image,
             transform: Transform {
-                scale: Vec3::new(0.5, 0.5, 0.0),
-                translation: Vec3::new(0.0, 0.0, 20.0),
+                scale: Vec3::new(0.6, 0.6, 0.0),
+                translation: Vec3::new(0.0, 0.0, 40.0),
                 ..default()
             },
             ..default()
@@ -87,10 +98,23 @@ pub fn spawn_current_player(mut commands: Commands, asset_server: ResMut<AssetSe
         transform: Transform::from_xyz(200.0, 200.0, 20.0),
         ..default()
     });
-    let chess_img = asset_server.load("chess_black.png");
+    let black_img = asset_server.load("chess_black.png");
+    let white_img = asset_server.load("chess_white.png");
     commands
         .spawn(SpriteBundle {
-            texture: chess_img,
+            texture: black_img,
+            transform: Transform {
+                translation: Vec3::new(200.0, 150.0, 20.0),
+                ..default()
+            },
+            ..default()
+        })
+        .insert(CurrentPlayer);
+
+    commands
+        .spawn(SpriteBundle {
+            texture: white_img,
+            visibility: Visibility::Hidden,
             transform: Transform {
                 translation: Vec3::new(200.0, 150.0, 20.0),
                 ..default()
@@ -118,7 +142,7 @@ pub fn position_translation(
         transform.translation = Vec3::new(
             convert(pos.x as f32, window.width() as f32) - 20.0,
             convert(pos.y as f32, window.height() as f32),
-            5.0,
+            transform.translation.z,
         );
     }
 }
@@ -183,7 +207,7 @@ pub fn cursor_select(
                     let pie_1 = pie;
                     if *cur == *pie_1 {
                         println!("selected");
-                        trans.scale = Vec3::new(0.8, 0.8, 0.0);
+                        trans.scale = Vec3::new(1.2, 1.2, 0.0);
                         board.selected_pieces = Some(cur.clone());
                         return;
                     }

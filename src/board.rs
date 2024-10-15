@@ -1,17 +1,30 @@
-use bevy::{color::*, prelude::*, sprite::*};
+use bevy::prelude::*;
 
 use crate::{Piece, PieceColor, Position};
 
 #[derive(Resource)]
 pub struct Board {
-    // board: [[u8; 4]; 4],
-    // current_player: PieceColor,
-    pub selected_pieces: Option<Position>,
+    board: [[Option<PieceColor>; 4]; 4],   // 棋盘
+    current_player: PieceColor,            // 当前玩家
+    pub selected_pieces: Option<Position>, // 被选中的棋子
+    pub last_pieces: Option<Position>,     // 上一步
 }
 
-// fn translate(v: [i32; 2]) -> Vec2 {
-//     Vec2::new(v[0] as f32 * 100.0 - 150.0, v[1] as f32 * 100.0 - 150.0)
-// }
+impl Board {
+    pub fn new() -> Self {
+        Board {
+            board: [
+                [Some(PieceColor::Black); 4],
+                [None; 4],
+                [None; 4],
+                [Some(PieceColor::White); 4],
+            ],
+            current_player: PieceColor::Black,
+            selected_pieces: None,
+            last_pieces: None,
+        }
+    }
+}
 
 pub fn spawn_board(mut commands: Commands, asset_server: ResMut<AssetServer>) {
     let board_asset = asset_server.load("board.png");
@@ -21,7 +34,6 @@ pub fn spawn_board(mut commands: Commands, asset_server: ResMut<AssetServer>) {
         transform: Transform::from_xyz(-20.0, 0.0, 0.0),
         ..default()
     });
-
     for x in 0..4 {
         let black_piece = asset_server.load("chess_black.png");
         let white_piece = asset_server.load("chess_white.png");

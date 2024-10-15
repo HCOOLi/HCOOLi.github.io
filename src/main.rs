@@ -1,7 +1,7 @@
 mod board;
 mod chess;
 mod consts;
-use bevy::{prelude::*, time::*, window::WindowResolution};
+use bevy::{prelude::*, window::WindowResolution};
 use board::*;
 use chess::*;
 use consts::*;
@@ -24,9 +24,7 @@ fn main() {
             Update,
             (position_translation, cursor_movement, cursor_select),
         )
-        .insert_resource(Board {
-            selected_pieces: None,
-        })
+        .insert_resource(Board::new())
         .add_plugins(DefaultPlugins.set(WindowPlugin {
             primary_window: Some(Window {
                 resolution: WindowResolution::new(WINDOW_WIDTH, WINDOW_HEIGHT),
