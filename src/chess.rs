@@ -7,7 +7,7 @@ pub struct Cursor;
 #[derive(Component)]
 pub struct Piece;
 
-#[derive(Component, Clone, Copy, PartialEq, Eq)]
+#[derive(Component, Clone, Copy, Debug, PartialEq, Eq)]
 pub struct Position {
     x: i32,
     y: i32,
@@ -116,8 +116,10 @@ pub fn cursor_select(
 ) {
     for mut pos in cursor_positions.iter_mut() {
         if keyboard_input.just_pressed(KeyCode::Enter) {
+            println!("cursor pos :{:?}", pos);
             let pos_1 = pos.clone();
             for mut pie in piece_positions.iter_mut() {
+                println!("piece pos :{:?}", pie);
                 let pie_1 = pie.clone();
                 if pos_1 == pie_1 {
                     pos.move_up();

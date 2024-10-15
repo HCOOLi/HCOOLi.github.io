@@ -22,7 +22,12 @@ fn main() {
         .add_systems(Startup, (spawn_board, spawn_cursor))
         .add_systems(
             Update,
-            (position_translation, cursor_movement, piece_movement),
+            (
+                position_translation,
+                cursor_movement,
+                piece_movement,
+                cursor_select,
+            ),
         )
         .add_plugins(DefaultPlugins.set(WindowPlugin {
             primary_window: Some(Window {

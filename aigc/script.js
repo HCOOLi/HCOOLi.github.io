@@ -80,7 +80,7 @@ function countPieces(color) {
 function getPieceAt(x, y) {
     return pieces.find(piece => {
         return x >= piece.x && x <= piece.x + cellSize &&
-               y >= piece.y && y <= piece.y + cellSize;
+            y >= piece.y && y <= piece.y + cellSize;
     });
 }
 
