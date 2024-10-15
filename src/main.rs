@@ -19,16 +19,14 @@ fn setup_camera(mut commands: Commands) {
 fn main() {
     App::new()
         .add_systems(Startup, setup_camera)
-        .add_systems(Startup, (spawn_board, spawn_cursor))
+        .add_systems(Startup, (spawn_board, spawn_cursor, spawn_current_player))
         .add_systems(
             Update,
-            (
-                position_translation,
-                cursor_movement,
-                piece_movement,
-                cursor_select,
-            ),
+            (position_translation, cursor_movement, cursor_select),
         )
+        .insert_resource(Board {
+            selected_pieces: None,
+        })
         .add_plugins(DefaultPlugins.set(WindowPlugin {
             primary_window: Some(Window {
                 resolution: WindowResolution::new(WINDOW_WIDTH, WINDOW_HEIGHT),
