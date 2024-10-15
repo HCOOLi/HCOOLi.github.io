@@ -13,39 +13,42 @@ pub struct Position {
     y: i32,
 }
 impl Position {
-    fn move_up(&mut self) {
+    pub fn new(x: i32, y: i32) -> Self {
+        if x < 0 || x > 3 || y < 0 || y > 3 {
+            panic!("out of range")
+        }
+        Position { x, y }
+    }
+
+    pub fn move_up(&mut self) {
         if self.y < 3 {
             self.y += 1;
         }
     }
-    fn move_down(&mut self) {
+    pub fn move_down(&mut self) {
         if self.y > 0 {
             self.y -= 1;
         }
     }
-    fn move_right(&mut self) {
+    pub fn move_right(&mut self) {
         if self.x < 3 {
             self.x += 1;
         }
     }
-    fn move_left(&mut self) {
+    pub fn move_left(&mut self) {
         if self.x > 0 {
             self.x -= 1;
         }
     }
 }
 
-pub fn spawn_cursor(
-    mut commands: Commands,
-    mut meshes: ResMut<Assets<Mesh>>,
-    mut materials: ResMut<Assets<ColorMaterial>>,
-) {
-    let circle_mesh = Mesh2dHandle(meshes.add(Circle { radius: 30.0 }));
+pub fn spawn_cursor(mut commands: Commands, asset_server: ResMut<AssetServer>) {
+    let cursor_image = asset_server.load("cursor.png");
     commands
-        .spawn(MaterialMesh2dBundle {
-            mesh: circle_mesh,
-            material: materials.add(ColorMaterial::from_color(palettes::css::OLIVE)),
+        .spawn(SpriteBundle {
+            texture: cursor_image,
             transform: Transform {
+                scale: Vec3::new(0.5, 0.5, 0.0),
                 translation: Vec3::new(0.0, 0.0, 20.0),
                 ..default()
             },
@@ -78,26 +81,11 @@ pub fn position_translation(
     }
 }
 
-// fn spawn_pieces(mut commands: Commands) {
-//     commands
-//         .spawn(SpriteBundle {
-//             sprite: Sprite {
-//                 color: SNAKE_HEAD_COLOR,
-//                 ..default()
-//             },
-//             transform: Transform {
-//                 scale: Vec3::new(10.0, 10.0, 10.0),
-//                 ..default()
-//             },
-//             ..default()
-//         });
-// }
-
 pub fn cursor_movement(
     keyboard_input: Res<ButtonInput<KeyCode>>,
-    mut head_positions: Query<&mut Position, With<Cursor>>,
+    mut cursor_positions: Query<&mut Position, With<Cursor>>,
 ) {
-    for mut pos in head_positions.iter_mut() {
+    for mut pos in cursor_positions.iter_mut() {
         if keyboard_input.just_pressed(KeyCode::ArrowLeft)
             || keyboard_input.just_pressed(KeyCode::KeyA)
         {
@@ -120,4 +108,52 @@ pub fn cursor_movement(
         }
     }
 }
+
+pub fn cursor_select(
+    keyboard_input: Res<ButtonInput<KeyCode>>,
+    mut cursor_positions: Query<&mut Position, With<Cursor>>,
+    mut piece_positions: Query<&mut Position, With<Piece>>,
+) {
+    for mut pos in cursor_positions.iter_mut() {
+        if keyboard_input.just_pressed(KeyCode::Enter) {
+            let pos_1 = pos.clone();
+            for mut pie in piece_positions.iter_mut() {
+                let pie_1 = pie.clone();
+                if pos_1 == pie_1 {
+                    pos.move_up();
+                    pie.move_up();
+                }
+            }
+        }
+    }
+}
+
+pub fn piece_movement(
+    keyboard_input: Res<ButtonInput<KeyCode>>,
+    mut piece_positions: Query<&mut Position, With<Piece>>,
+) {
+    for mut pos in piece_positions.iter_mut() {
+        if keyboard_input.just_pressed(KeyCode::ArrowLeft)
+            || keyboard_input.just_pressed(KeyCode::KeyA)
+        {
+            pos.move_left();
+        }
+        if keyboard_input.just_pressed(KeyCode::ArrowRight)
+            || keyboard_input.just_pressed(KeyCode::KeyD)
+        {
+            pos.move_right();
+        }
+        if keyboard_input.just_pressed(KeyCode::ArrowDown)
+            || keyboard_input.just_pressed(KeyCode::KeyS)
+        {
+            pos.move_down();
+        }
+        if keyboard_input.just_pressed(KeyCode::ArrowUp)
+            || keyboard_input.just_pressed(KeyCode::KeyW)
+        {
+            pos.move_up();
+        }
+    }
+}
+
 pub fn handle_input(mouse: Res<ButtonInput<MouseButton>>) {}
