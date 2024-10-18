@@ -1,5 +1,5 @@
 use crate::Board;
-use bevy::{color::*, prelude::*};
+use bevy::{color::*, prelude::*, transform::commands};
 
 // 键盘移动的光标
 #[derive(Component)]
@@ -21,7 +21,9 @@ impl PieceColor {
 }
 
 #[derive(Component)]
-pub struct CurrentPlayer;
+pub struct CurrentPlayer {
+    pub is_white: bool,
+}
 
 #[derive(Bundle)]
 pub struct Piece {
@@ -42,6 +44,9 @@ impl Position {
             panic!("out of range")
         }
         Position { x, y }
+    }
+    pub fn tuple(&self) -> (i32, i32) {
+        (self.x, self.y)
     }
 
     pub fn move_up(&mut self) {
@@ -109,7 +114,7 @@ pub fn spawn_current_player(mut commands: Commands, asset_server: ResMut<AssetSe
             },
             ..default()
         })
-        .insert(CurrentPlayer);
+        .insert(CurrentPlayer { is_white: false });
 
     commands
         .spawn(SpriteBundle {
@@ -121,7 +126,7 @@ pub fn spawn_current_player(mut commands: Commands, asset_server: ResMut<AssetSe
             },
             ..default()
         })
-        .insert(CurrentPlayer);
+        .insert(CurrentPlayer { is_white: true });
 }
 
 pub enum PlayerColor {
@@ -175,84 +180,115 @@ pub fn cursor_movement(
     }
 }
 
-pub fn cursor_select(
-    keyboard_input: Res<ButtonInput<KeyCode>>,
-    cursor_positions: Query<&Position, With<Cursor>>,
+fn selecet_chess(
+    cursor: Position,
     mut piece_positions: Query<
-        (&mut Position, &mut Transform),
+        (Entity, &mut Position, &mut Transform),
         (With<PieceColor>, Without<Cursor>),
     >,
     mut board: ResMut<Board>,
 ) {
-    if keyboard_input.just_pressed(KeyCode::Enter) {
-        if let Some(selected) = board.selected_pieces {
-            println!("selected pos :{:?}", selected);
-            for (mut pie, mut trans) in piece_positions.iter_mut() {
-                if selected == *pie {
-                    if let Ok(cur) = cursor_positions.get_single() {
-                        println!("cursor pos :{:?}", cur);
-                        *pie = *cur;
-                        board.selected_pieces = None;
-                        trans.scale = Vec3::new(1.0, 1.0, 0.0);
-                    }
-                    println!("moved");
-                    return;
-                }
-            }
-        } else {
+    for (e, pie, mut trans) in piece_positions.iter_mut() {
+        println!("piece pos :{:?}", pie);
+        let pie_1 = pie;
+        if cursor == *pie_1 {
+            println!("selected");
+            trans.scale = Vec3::new(1.2, 1.2, 0.0);
+            board.selected_pieces = Some(e.index());
+            return;
+        }
+    }
+}
+fn unselecet_chess(
+    cursor: Position,
+    mut piece_positions: Query<
+        (Entity, &mut Position, &mut Transform),
+        (With<PieceColor>, Without<Cursor>),
+    >,
+    mut board: ResMut<Board>,
+) {
+    for (e, pie, mut trans) in piece_positions.iter_mut() {
+        println!("piece pos :{:?}", pie);
+        let pie_1 = pie;
+        if cursor == *pie_1 {
+            println!("selected");
+            trans.scale = Vec3::new(1.2, 1.2, 0.0);
+            board.selected_pieces = Some(e.index());
+            return;
+        }
+    }
+}
+
+fn move_chess(
+    mut command: Commands,
+    selected: u32,
+    cursor_positions: Query<&Position, With<Cursor>>,
+    mut piece_positions: Query<
+        (Entity, &mut Position, &mut Transform),
+        (With<PieceColor>, Without<Cursor>),
+    >,
+    mut board: ResMut<Board>,
+) {
+    let mut eaten = Vec::<(i32, i32)>::new();
+    for (entity, mut pie, mut trans) in piece_positions.iter_mut() {
+        if selected == entity.index() {
             if let Ok(cur) = cursor_positions.get_single() {
                 println!("cursor pos :{:?}", cur);
-                for (pie, mut trans) in piece_positions.iter_mut() {
-                    println!("piece pos :{:?}", pie);
-                    let pie_1 = pie;
-                    if *cur == *pie_1 {
-                        println!("selected");
-                        trans.scale = Vec3::new(1.2, 1.2, 0.0);
-                        board.selected_pieces = Some(cur.clone());
-                        return;
+                match board.move_chess(pie.tuple(), cur.tuple()) {
+                    Ok(_) => {
+                        *pie = *cur;
+                        board.selected_pieces = None;
+
+                        trans.scale = Vec3::new(1.0, 1.0, 0.0);
+                        println!("moved");
+                        eaten = board.can_eat_chess(cur.tuple())
+                    }
+                    Err(e) => {
+                        println!("failed : {}", e);
                     }
                 }
             }
         }
     }
+    for p in eaten {
+        board.eat_piece(p);
+        for (e, pie, mut trans) in piece_positions.iter_mut() {
+            if pie.tuple() == p {
+                eat_chess(&mut command, e);
+            }
+        }
+    }
 }
 
-// pub fn piece_movement(
-//     keyboard_input: Res<ButtonInput<KeyCode>>,
-//     mut piece_positions: Query<&mut Position, With<PieceColor>>,
-//     mut board: ResMut<Board>,
-// ) {
-//     if let Some(pos) = board.selected_pieces {
-//         for mut pie_pos in piece_positions.iter_mut() {
-//             if *pie_pos == pos {
-//                 if keyboard_input.just_pressed(KeyCode::ArrowLeft)
-//                     || keyboard_input.just_pressed(KeyCode::KeyA)
-//                 {
-//                     pie_pos.move_left();
-//                     board.selected_pieces = Some(pie_pos.clone());
-//                 }
-//                 if keyboard_input.just_pressed(KeyCode::ArrowRight)
-//                     || keyboard_input.just_pressed(KeyCode::KeyD)
-//                 {
-//                     pie_pos.move_right();
-//                     board.selected_pieces = Some(pie_pos.clone());
-//                 }
-//                 if keyboard_input.just_pressed(KeyCode::ArrowDown)
-//                     || keyboard_input.just_pressed(KeyCode::KeyS)
-//                 {
-//                     pie_pos.move_down();
-//                     board.selected_pieces = Some(pie_pos.clone());
-//                 }
-//                 if keyboard_input.just_pressed(KeyCode::ArrowUp)
-//                     || keyboard_input.just_pressed(KeyCode::KeyW)
-//                 {
-//                     pie_pos.move_up();
-//                     board.selected_pieces = Some(pie_pos.clone());
-//                 }
-//             }
-//         }
-//     }
-// }
+fn eat_chess(command: &mut Commands, entity: Entity) {
+    command.entity(entity).despawn();
+}
+
+pub fn cursor_select(
+    mut commands: Commands,
+    keyboard_input: Res<ButtonInput<KeyCode>>,
+    cursor_positions: Query<&Position, With<Cursor>>,
+    mut piece_positions: Query<
+        (Entity, &mut Position, &mut Transform),
+        (With<PieceColor>, Without<Cursor>),
+    >,
+    mut board: ResMut<Board>,
+) {
+    if keyboard_input.just_pressed(KeyCode::Enter) {
+        // case selected
+        if let Some(selected) = board.selected_pieces {
+            println!("selected pos :{:?}", selected);
+
+            move_chess(commands, selected, cursor_positions, piece_positions, board);
+        } else {
+            // to select
+            if let Ok(cur) = cursor_positions.get_single() {
+                println!("cursor pos :{:?}", cur);
+                selecet_chess(*cur, piece_positions, board);
+            }
+        }
+    }
+}
 
 pub fn handle_input(mouse: Res<ButtonInput<MouseButton>>) {
     todo!("实现鼠标逻辑")
